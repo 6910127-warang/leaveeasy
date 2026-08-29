@@ -7,14 +7,9 @@
   var กล่อง = document.getElementById("ผลลัพธ์");
 
   db.collection("leaveRequests").get().then(function (สแนปช็อต) {
-    var ใบลาจากฐานข้อมูล = สแนปช็อต.docs.map(function (เอกสาร) {
+    var ใบลาทั้งหมด = สแนปช็อต.docs.map(function (เอกสาร) {
       return Object.assign({ id: เอกสาร.id }, เอกสาร.data());
     });
-
-    // บวกกับใบที่เพิ่งยื่นในหน้าถัดไป
-    // (สัปดาห์นี้หน้ายื่นใบลาใหม่ยังไม่บันทึกลง Firestore จริง ใบใหม่จึงหายเมื่อปิดเบราว์เซอร์)
-    var ใบลาที่ยื่นใหม่ = JSON.parse(sessionStorage.getItem("ใบลาที่ยื่นใหม่") || "[]");
-    var ใบลาทั้งหมด = ใบลาจากฐานข้อมูล.concat(ใบลาที่ยื่นใหม่);
 
     // ถ้ามีสถานะติดมาท้าย URL ให้กรองเฉพาะสถานะนั้น
     var สถานะที่กรอง = ค่าจากURL("status");

@@ -1,7 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // js/leave-request-detail.js — หน้าที่ 3 รายละเอียดใบลา
 // อ่านใบลาและความเห็นจาก Firestore จริง แก้สถานะและเขียนความเห็นกลับเข้า Firestore
-// (ใบที่เพิ่งยื่นในหน้าที่ 2 แต่ยังไม่บันทึกจริง ยังทำงานในหน่วยความจำเหมือนเดิม)
 // ─────────────────────────────────────────────────────────────
 
 (function () {
@@ -9,28 +8,19 @@
   var กล่องใบลา = document.getElementById("กล่องใบลา");
   var กล่องความเห็น = document.getElementById("กล่องความเห็น");
 
-  var ใบ, ความเห็น, มาจากFirestore;
+  var ใบ, ความเห็น;
 
   db.collection("leaveRequests").doc(รหัสใบลา).get().then(function (เอกสาร) {
-    if (เอกสาร.exists) {
-      มาจากFirestore = true;
-      ใบ = Object.assign({ id: เอกสาร.id }, เอกสาร.data());
-      return db.collection("leaveRequests").doc(รหัสใบลา).collection("approvals").get();
-    }
-    // ไม่พบใน Firestore — ลองหาจากใบที่เพิ่งยื่นในหน้าที่ 2 (ยังไม่บันทึกลงฐานข้อมูลจริง)
-    มาจากFirestore = false;
-    var ใบลาที่ยื่นใหม่ = JSON.parse(sessionStorage.getItem("ใบลาที่ยื่นใหม่") || "[]");
-    ใบ = ใบลาที่ยื่นใหม่.find(function (x) { return x.id === รหัสใบลา; });
-    return null;
-  }).then(function (สแนปช็อตความเห็น) {
-    if (!ใบ) {
+    if (!เอกสาร.exists) {
       กล่องใบลา.innerHTML = "<p>ไม่พบใบขอลาที่ต้องการ — อาจถูกลบไปแล้ว หรือลิงก์ไม่ถูกต้อง</p>";
-      return;
+      return null;
     }
+    ใบ = Object.assign({ id: เอกสาร.id }, เอกสาร.data());
+    return db.collection("leaveRequests").doc(รหัสใบลา).collection("approvals").get();
+  }).then(function (สแนปช็อตความเห็น) {
+    if (!ใบ) return;
 
-    ความเห็น = สแนปช็อตความเห็น
-      ? สแนปช็อตความเห็น.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); })
-      : [];
+    ความเห็น = สแนปช็อตความเห็น.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
 
     วาดใบลา();
     วาดความเห็น();
@@ -84,12 +74,6 @@
       return;
     }
 
-    if (!มาจากFirestore) {
-      ใบ.status = สถานะใหม่;
-      วาดใบลา();
-      return;
-    }
-
     db.collection("leaveRequests").doc(ใบ.id).update({ status: สถานะใหม่ }).then(function () {
       ใบ.status = สถานะใหม่;
       วาดใบลา();
@@ -133,13 +117,6 @@
       message: ข้อความ,
       createdAt: เวลาตอนนี้()
     };
-
-    if (!มาจากFirestore) {
-      ความเห็น.push(Object.assign({ id: "ap-ใหม่-" + Date.now() }, ความเห็นใหม่));
-      ช่อง.value = "";
-      วาดความเห็น();
-      return;
-    }
 
     db.collection("leaveRequests").doc(ใบ.id).collection("approvals").add(ความเห็นใหม่).then(function (อ้างอิง) {
       ความเห็น.push(Object.assign({ id: อ้างอิง.id }, ความเห็นใหม่));

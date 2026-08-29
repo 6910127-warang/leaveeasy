@@ -1,20 +1,26 @@
 // ─────────────────────────────────────────────────────────────
 // js/new-leave-request.js — หน้าที่ 2 ยื่นใบลาใหม่
-// สัปดาห์ที่ 6 (ต้นสัปดาห์): เก็บไว้ในหน่วยความจำของเบราว์เซอร์เท่านั้น
-// ยังไม่บันทึกลงฐานข้อมูล (เป็นงานของสัปดาห์ที่ 7)
+// ประเภทการลาอ่านจาก Firestore · กดบันทึกแล้วเขียนใบลาใหม่ลง Firestore จริง
 // ─────────────────────────────────────────────────────────────
 
 (function () {
   var ฟอร์ม = document.getElementById("ฟอร์มใบลา");
   var ช่องประเภท = document.getElementById("leaveTypeId");
   var กล่องเตือน = document.getElementById("ข้อความเตือน");
+  var ปุ่มบันทึก = document.getElementById("ปุ่มบันทึก");
+  var ประเภททั้งหมด = [];
 
-  // เติมรายการเลื่อนลงด้วยประเภทการลาที่มีอยู่
-  window.LEAVE_DATA.leaveTypes.forEach(function (ประเภท) {
-    var ตัวเลือก = document.createElement("option");
-    ตัวเลือก.value = ประเภท.id;
-    ตัวเลือก.textContent = ประเภท.name;
-    ช่องประเภท.appendChild(ตัวเลือก);
+  // เติมรายการเลื่อนลงด้วยประเภทการลาจาก Firestore
+  db.collection("leaveTypes").get().then(function (สแนปช็อต) {
+    ประเภททั้งหมด = สแนปช็อต.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+    ประเภททั้งหมด.forEach(function (ประเภท) {
+      var ตัวเลือก = document.createElement("option");
+      ตัวเลือก.value = ประเภท.id;
+      ตัวเลือก.textContent = ประเภท.name;
+      ช่องประเภท.appendChild(ตัวเลือก);
+    });
+  }).catch(function (err) {
+    เตือน("โหลดประเภทการลาไม่สำเร็จ: " + err.message);
   });
 
   ฟอร์ม.addEventListener("submit", function (e) {
@@ -38,11 +44,10 @@
       return;
     }
 
-    var ประเภท = window.LEAVE_DATA.leaveTypes.find(function (t) { return t.id === ค่า.leaveTypeId; });
+    var ประเภท = ประเภททั้งหมด.find(function (t) { return t.id === ค่า.leaveTypeId; });
 
-    // สัปดาห์ที่ 6 ยังไม่มีล็อกอิน จึงสมมติว่าผู้ขอลาคือ สมชาย ใจดี
+    // สัปดาห์นี้ยังไม่มีล็อกอิน จึงสมมติว่าผู้ขอลาคือ สมชาย ใจดี
     var ใบใหม่ = {
-      id: "lr-ใหม่-" + Date.now(),
       title: ค่า.title,
       reason: ค่า.reason,
       status: "รอพิจารณา",                       // ใบใหม่เริ่มที่ รอพิจารณา เสมอ
@@ -54,11 +59,13 @@
       createdAt: เวลาตอนนี้()
     };
 
-    var รายการ = JSON.parse(sessionStorage.getItem("ใบลาที่ยื่นใหม่") || "[]");
-    รายการ.push(ใบใหม่);
-    sessionStorage.setItem("ใบลาที่ยื่นใหม่", JSON.stringify(รายการ));
-
-    location.href = "leave-requests.html";
+    ปุ่มบันทึก.disabled = true;
+    db.collection("leaveRequests").add(ใบใหม่).then(function () {
+      location.href = "leave-requests.html";
+    }).catch(function (err) {
+      เตือน("บันทึกไม่สำเร็จ: " + err.message);
+      ปุ่มบันทึก.disabled = false;
+    });
   });
 
   function เตือน(ข้อความ) {
