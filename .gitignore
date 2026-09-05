@@ -2,9 +2,6 @@
 # .gitignore ของโครงงาน LeaveEasy
 #
 # ไฟล์นี้คือ "รายชื่อสิ่งที่ห้ามส่งขึ้น GitHub"
-#
-# 📌 ตอนนี้กันไว้แค่ไฟล์ขยะที่เครื่องมือสร้างเอง
-#    ส่วนการกันไฟล์ที่มีคีย์ คุณจะได้เพิ่มเองในสัปดาห์ที่ 7
 # ─────────────────────────────────────────────────────────────
 
 
@@ -19,6 +16,30 @@ desktop.ini
 *.log
 .vscode/
 .idea/
+.obsidian/
+
+
+# ── ไฟล์ตั้งค่า/คีย์ลับ — ห้ามส่งขึ้น GitHub เด็ดขาด ──
+# (กันไว้ล่วงหน้าสำหรับของใหม่ที่จะเพิ่มในสัปดาห์ที่ 7 เป็นต้นไป
+#  เช่น service account key ของ Firebase Admin, คีย์ AI ผ่าน OpenRouter ฯลฯ
+#  ⚠️ js/firebase-config.js ที่มีอยู่แล้วไม่ได้อยู่ในรายการนี้ — มันถูก commit
+#  และ push ขึ้น GitHub ไปแล้วตั้งแต่สัปดาห์ที่ 6 การเพิ่มมันในไฟล์นี้ตอนนี้
+#  จะไม่ลบมันออกจากที่ push ไปแล้ว ต้องคุยกับผู้ช่วยแยกต่างหากถ้าจะเอาออกจริง)
+.env
+.env.*
+*.env
+secrets/
+*serviceAccountKey*.json
+*service-account*.json
+*credentials*.json
+*credentials*.js
+config.local.*
+*.local.json
+*.pem
+*.key
+*.p12
+firebase-config.local.js
+firebase-adminsdk*.json
 
 
 # ─────────────────────────────────────────────────────────────
