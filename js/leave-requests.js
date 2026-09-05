@@ -56,7 +56,8 @@
     // กดที่แถวไหน ไปหน้ารายละเอียดของใบนั้น
     กล่อง.querySelectorAll("tr.clickable").forEach(function (แถว) {
       แถว.addEventListener("click", function () {
-        location.href = "leave-request-detail.html?id=" + แถว.dataset.id;
+        // ไม่ใส่ .html เพราะ serve (dev server) ทำ redirect ตัด query string ทิ้งถ้า URL มีทั้ง .html และ ?
+        location.href = "leave-request-detail?id=" + แถว.dataset.id;
       });
     });
   }
