@@ -1,0 +1,23 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "hosting": {
+    "public": ".",
+    "cleanUrls": true,
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "*.md",
+      "package.json",
+      "package-lock.json",
+      ".claude/**",
+      ".test/**",
+      ".obsidian/**",
+      "Checkpointw1/**",
+      "Checkpointw2/**"
+    ]
+  }
+}
