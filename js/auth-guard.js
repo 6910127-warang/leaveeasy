@@ -26,12 +26,22 @@ var รอผู้ใช้ปัจจุบัน = (function () {
           role: ข้อมูล.role || "employee"
         };
         แสดงผู้ใช้ในนาว(ผู้ใช้ปัจจุบัน);
+        ใช้ข้อจำกัดสิทธิ์(ผู้ใช้ปัจจุบัน.role);
         resolve(ผู้ใช้ปัจจุบัน);
       });
     });
   });
   return function () { return สัญญา; };
 })();
+
+// ซ่อนปุ่ม/เมนูที่มี data-require-role="xxx" (หรือรายการคั่นด้วย , เช่น "manager,hr")
+// ถ้า role ของผู้ใช้ไม่อยู่ในรายการที่อนุญาต — เรียกซ้ำได้ทุกครั้งที่มีการวาด DOM ใหม่
+function ใช้ข้อจำกัดสิทธิ์(บทบาท) {
+  document.querySelectorAll("[data-require-role]").forEach(function (เอล) {
+    var รายการที่อนุญาต = เอล.getAttribute("data-require-role").split(",");
+    เอล.style.display = รายการที่อนุญาต.indexOf(บทบาท) === -1 ? "none" : "";
+  });
+}
 
 // เติมชื่อผู้ใช้ + ปุ่มออกจากระบบ ลงในช่องว่างที่ nav.js เตรียมไว้ (#navUser)
 function แสดงผู้ใช้ในนาว(ผู้ใช้) {

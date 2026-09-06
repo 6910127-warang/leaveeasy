@@ -8,8 +8,13 @@
   var ที่วางตาราง = document.getElementById("ตารางประเภท");
   var ช่องชื่อใหม่ = document.getElementById("ชื่อประเภทใหม่");
   var กล่องเตือน = document.getElementById("เตือนประเภท");
+  var บทบาทผู้ใช้ = "employee";   // ค่าตั้งต้นก่อนรู้ role จริง กันปุ่มแก้ไข/ลบโผล่วาบก่อนถูกซ่อน
 
-  วาดตาราง();
+  รอผู้ใช้ปัจจุบัน().then(function (ผู้ใช้) {
+    บทบาทผู้ใช้ = ผู้ใช้.role;
+    วาดตาราง();
+  });
+
   document.getElementById("ปุ่มเพิ่ม").addEventListener("click", เพิ่มประเภท);
 
   function วาดตาราง() {
@@ -22,8 +27,8 @@
     รายการ.forEach(function (ประเภท) {
       html +=
         "<tr><td>" + esc(ประเภท.name) + "</td><td>" +
-        '<button type="button" class="btn-ghost" data-edit="' + esc(ประเภท.id) + '">แก้ไข</button> ' +
-        '<button type="button" class="btn-danger" data-del="' + esc(ประเภท.id) + '">ลบ</button>' +
+        '<button type="button" class="btn-ghost" data-edit="' + esc(ประเภท.id) + '" data-require-role="hr">แก้ไข</button> ' +
+        '<button type="button" class="btn-danger" data-del="' + esc(ประเภท.id) + '" data-require-role="hr">ลบ</button>' +
         "</td></tr>";
     });
     html += "</tbody></table>";
@@ -35,6 +40,8 @@
     ที่วางตาราง.querySelectorAll("[data-del]").forEach(function (ปุ่ม) {
       ปุ่ม.addEventListener("click", function () { ลบประเภท(ปุ่ม.dataset.del); });
     });
+
+    ใช้ข้อจำกัดสิทธิ์(บทบาทผู้ใช้);
   }
 
   function เพิ่มประเภท() {

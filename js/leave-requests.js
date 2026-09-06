@@ -6,10 +6,20 @@
 (function () {
   var กล่อง = document.getElementById("ผลลัพธ์");
 
-  db.collection("leaveRequests").get().then(function (สแนปช็อต) {
+  Promise.all([
+    รอผู้ใช้ปัจจุบัน(),
+    db.collection("leaveRequests").get()
+  ]).then(function (ผลลัพธ์) {
+    var ผู้ใช้ปัจจุบัน = ผลลัพธ์[0];
+    var สแนปช็อต = ผลลัพธ์[1];
     var ใบลาทั้งหมด = สแนปช็อต.docs.map(function (เอกสาร) {
       return Object.assign({ id: เอกสาร.id }, เอกสาร.data());
     });
+
+    // employee เห็นเฉพาะใบของตัวเองตาม ACL.md — manager/hr เห็นทุกใบ
+    if (ผู้ใช้ปัจจุบัน.role === "employee") {
+      ใบลาทั้งหมด = ใบลาทั้งหมด.filter(function (ใบ) { return ใบ.requesterId === ผู้ใช้ปัจจุบัน.uid; });
+    }
 
     // ถ้ามีสถานะติดมาท้าย URL ให้กรองเฉพาะสถานะนั้น
     var สถานะที่กรอง = ค่าจากURL("status");

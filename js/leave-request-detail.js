@@ -8,7 +8,7 @@
   var กล่องใบลา = document.getElementById("กล่องใบลา");
   var กล่องความเห็น = document.getElementById("กล่องความเห็น");
 
-  var ใบ, ความเห็น;
+  var ใบ, ความเห็น, ผู้ใช้ปัจจุบัน;
 
   // ไม่มี id ต่อท้าย URL — กันไว้ก่อนเรียก Firestore เพราะ .doc("") จะโยน error ทันที ไม่ผ่าน .catch()
   if (!รหัสใบลา) {
@@ -16,12 +16,25 @@
     return;
   }
 
-  db.collection("leaveRequests").doc(รหัสใบลา).get().then(function (เอกสาร) {
+  Promise.all([
+    รอผู้ใช้ปัจจุบัน(),
+    db.collection("leaveRequests").doc(รหัสใบลา).get()
+  ]).then(function (ผลลัพธ์) {
+    ผู้ใช้ปัจจุบัน = ผลลัพธ์[0];
+    var เอกสาร = ผลลัพธ์[1];
     if (!เอกสาร.exists) {
       กล่องใบลา.innerHTML = "<p>ไม่พบใบขอลาที่ต้องการ — อาจถูกลบไปแล้ว หรือลิงก์ไม่ถูกต้อง</p>";
       return null;
     }
     ใบ = Object.assign({ id: เอกสาร.id }, เอกสาร.data());
+
+    // employee ดูใบของคนอื่นไม่ได้ตาม ACL.md — กันคนพิมพ์ URL ตรง ๆ ข้ามหน้ารายการมา
+    if (ผู้ใช้ปัจจุบัน.role === "employee" && ใบ.requesterId !== ผู้ใช้ปัจจุบัน.uid) {
+      กล่องใบลา.innerHTML = "<p>คุณไม่มีสิทธิ์ดูใบลานี้</p>";
+      ใบ = null;
+      return null;
+    }
+
     return db.collection("leaveRequests").doc(รหัสใบลา).collection("approvals").get();
   }).then(function (สแนปช็อตความเห็น) {
     if (!ใบ) return;
@@ -53,25 +66,33 @@
       return '<div class="field-row"><span class="k">' + r[0] + "</span><span>" + r[1] + "</span></div>";
     }).join("");
 
-    // ปุ่มอนุมัติ / ไม่อนุมัติ ขึ้นเฉพาะใบที่ยังรอพิจารณา
+    // ปุ่มอนุมัติ / ไม่อนุมัติ / ลบ ขึ้นเฉพาะใบที่ยังรอพิจารณา — และเฉพาะคนที่มีสิทธิ์ตาม ACL.md เท่านั้น
+    var เป็นผู้อนุมัติ = ผู้ใช้ปัจจุบัน.role === "manager" || ผู้ใช้ปัจจุบัน.role === "hr";
+    var เป็นเจ้าของใบ = ใบ.requesterId === ผู้ใช้ปัจจุบัน.uid;
+
     if (ใบ.status === "รอพิจารณา") {
-      html +=
-        '<div class="btn-row">' +
-        '<button type="button" class="btn-ok" id="ปุ่มอนุมัติ">อนุมัติ</button>' +
-        '<button type="button" class="btn-danger" id="ปุ่มไม่อนุมัติ">ไม่อนุมัติ</button>' +
-        '<button type="button" class="btn-danger" id="ปุ่มลบ">ลบใบลา</button>' +
-        "</div>";
+      var ปุ่ม = "";
+      if (เป็นผู้อนุมัติ) {
+        ปุ่ม +=
+          '<button type="button" class="btn-ok" id="ปุ่มอนุมัติ">อนุมัติ</button>' +
+          '<button type="button" class="btn-danger" id="ปุ่มไม่อนุมัติ">ไม่อนุมัติ</button>';
+      }
+      if (เป็นเจ้าของใบ) {
+        ปุ่ม += '<button type="button" class="btn-danger" id="ปุ่มลบ">ลบใบลา</button>';
+      }
+      if (ปุ่ม) html += '<div class="btn-row">' + ปุ่ม + "</div>";
     } else {
       html += '<p class="hint">ใบนี้พิจารณาแล้ว จึงเปลี่ยนสถานะต่อไม่ได้</p>';
     }
 
     กล่องใบลา.innerHTML = html;
 
-    if (ใบ.status === "รอพิจารณา") {
-      document.getElementById("ปุ่มอนุมัติ").addEventListener("click", function () { เปลี่ยนสถานะ("อนุมัติ"); });
-      document.getElementById("ปุ่มไม่อนุมัติ").addEventListener("click", function () { เปลี่ยนสถานะ("ไม่อนุมัติ"); });
-      document.getElementById("ปุ่มลบ").addEventListener("click", ลบใบลา);
-    }
+    var ปุ่มอนุมัติ = document.getElementById("ปุ่มอนุมัติ");
+    var ปุ่มไม่อนุมัติ = document.getElementById("ปุ่มไม่อนุมัติ");
+    var ปุ่มลบ = document.getElementById("ปุ่มลบ");
+    if (ปุ่มอนุมัติ) ปุ่มอนุมัติ.addEventListener("click", function () { เปลี่ยนสถานะ("อนุมัติ"); });
+    if (ปุ่มไม่อนุมัติ) ปุ่มไม่อนุมัติ.addEventListener("click", function () { เปลี่ยนสถานะ("ไม่อนุมัติ"); });
+    if (ปุ่มลบ) ปุ่มลบ.addEventListener("click", ลบใบลา);
   }
 
   // ── เปลี่ยนสถานะ — เขียนกลับ Firestore เฉพาะช่อง status เท่านั้น ──

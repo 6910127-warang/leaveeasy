@@ -10,7 +10,7 @@
     { href: "index.html",             ชื่อ: "หน้าแรก" },
     { href: "leave-requests.html",    ชื่อ: "รายการใบลา" },
     { href: "new-leave-request.html", ชื่อ: "ยื่นใบลาใหม่" },
-    { href: "leave-types.html",       ชื่อ: "ประเภทการลา" }
+    { href: "leave-types.html",       ชื่อ: "ประเภทการลา", ต้องมีสิทธิ์: "hr" }
   ];
 
   // ชื่อไฟล์ของหน้าที่กำลังเปิดอยู่ เอาไว้ขีดเส้นใต้เมนูที่ตรงกัน
@@ -19,7 +19,9 @@
   var html = '<div class="navbar"><span class="brand">🔧 LeaveEasy</span>';
   เมนู.forEach(function (m) {
     var active = m.href === หน้าปัจจุบัน ? ' class="active"' : "";
-    html += '<a href="' + m.href + '"' + active + ">" + m.ชื่อ + "</a>";
+    // js/auth-guard.js เป็นคนซ่อนเมนูนี้จริง หลังรู้ role ของผู้ใช้ที่ล็อกอินอยู่
+    var ต้องมีสิทธิ์ = m.ต้องมีสิทธิ์ ? ' data-require-role="' + m.ต้องมีสิทธิ์ + '"' : "";
+    html += '<a href="' + m.href + '"' + active + ต้องมีสิทธิ์ + ">" + m.ชื่อ + "</a>";
   });
   // ช่องว่างสำหรับแสดงชื่อคนที่ล็อกอินอยู่ — js/auth-guard.js เป็นคนเติมค่า
   html += '<span class="nav-user" id="navUser"></span></div>';
