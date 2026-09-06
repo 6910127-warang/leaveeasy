@@ -21,7 +21,7 @@
     var active = m.href === หน้าปัจจุบัน ? ' class="active"' : "";
     html += '<a href="' + m.href + '"' + active + ">" + m.ชื่อ + "</a>";
   });
-  // ช่องว่างสำหรับแสดงชื่อคนที่ล็อกอินอยู่ (เติมค่าในสัปดาห์ที่ 7)
+  // ช่องว่างสำหรับแสดงชื่อคนที่ล็อกอินอยู่ — js/auth-guard.js เป็นคนเติมค่า
   html += '<span class="nav-user" id="navUser"></span></div>';
 
   var ที่วาง = document.getElementById("nav");

@@ -59,6 +59,7 @@
         '<div class="btn-row">' +
         '<button type="button" class="btn-ok" id="ปุ่มอนุมัติ">อนุมัติ</button>' +
         '<button type="button" class="btn-danger" id="ปุ่มไม่อนุมัติ">ไม่อนุมัติ</button>' +
+        '<button type="button" class="btn-danger" id="ปุ่มลบ">ลบใบลา</button>' +
         "</div>";
     } else {
       html += '<p class="hint">ใบนี้พิจารณาแล้ว จึงเปลี่ยนสถานะต่อไม่ได้</p>';
@@ -69,6 +70,7 @@
     if (ใบ.status === "รอพิจารณา") {
       document.getElementById("ปุ่มอนุมัติ").addEventListener("click", function () { เปลี่ยนสถานะ("อนุมัติ"); });
       document.getElementById("ปุ่มไม่อนุมัติ").addEventListener("click", function () { เปลี่ยนสถานะ("ไม่อนุมัติ"); });
+      document.getElementById("ปุ่มลบ").addEventListener("click", ลบใบลา);
     }
   }
 
@@ -85,6 +87,17 @@
       วาดใบลา();
     }).catch(function (err) {
       alert("แก้สถานะไม่สำเร็จ: " + err.message);
+    });
+  }
+
+  // ── ลบใบลา — ถามยืนยันก่อนทุกครั้ง กดยกเลิกแล้วไม่ลบ ──
+  function ลบใบลา() {
+    if (!confirm("ยืนยันการลบใบลานี้หรือไม่")) return;
+
+    db.collection("leaveRequests").doc(ใบ.id).delete().then(function () {
+      window.location.href = "leave-requests.html";
+    }).catch(function (err) {
+      alert("ลบไม่สำเร็จ: " + err.message);
     });
   }
 
@@ -117,17 +130,18 @@
     }
     เตือน.classList.add("hidden");
 
-    // สัปดาห์นี้ยังไม่มีล็อกอิน จึงสมมติว่าผู้เขียนคือ สมหญิง รักงาน
-    var ความเห็นใหม่ = {
-      authorId: "u002", authorName: "สมหญิง รักงาน",
-      message: ข้อความ,
-      createdAt: เวลาตอนนี้()
-    };
+    รอผู้ใช้ปัจจุบัน().then(function (ผู้ใช้) {
+      var ความเห็นใหม่ = {
+        authorId: ผู้ใช้.uid, authorName: ผู้ใช้.name,
+        message: ข้อความ,
+        createdAt: เวลาตอนนี้()
+      };
 
-    db.collection("leaveRequests").doc(ใบ.id).collection("approvals").add(ความเห็นใหม่).then(function (อ้างอิง) {
-      ความเห็น.push(Object.assign({ id: อ้างอิง.id }, ความเห็นใหม่));
-      ช่อง.value = "";
-      วาดความเห็น();
+      return db.collection("leaveRequests").doc(ใบ.id).collection("approvals").add(ความเห็นใหม่).then(function (อ้างอิง) {
+        ความเห็น.push(Object.assign({ id: อ้างอิง.id }, ความเห็นใหม่));
+        ช่อง.value = "";
+        วาดความเห็น();
+      });
     }).catch(function (err) {
       เตือน.textContent = "⚠️ ส่งความเห็นไม่สำเร็จ: " + esc(err.message);
       เตือน.classList.remove("hidden");

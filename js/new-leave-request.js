@@ -46,21 +46,21 @@
 
     var ประเภท = ประเภททั้งหมด.find(function (t) { return t.id === ค่า.leaveTypeId; });
 
-    // สัปดาห์นี้ยังไม่มีล็อกอิน จึงสมมติว่าผู้ขอลาคือ สมชาย ใจดี
-    var ใบใหม่ = {
-      title: ค่า.title,
-      reason: ค่า.reason,
-      status: "รอพิจารณา",                       // ใบใหม่เริ่มที่ รอพิจารณา เสมอ
-      requesterId: "u001", requesterName: "สมชาย ใจดี",
-      approverId: "",      approverName: "",
-      leaveTypeId: ประเภท.id, leaveTypeName: ประเภท.name,
-      startDate: ค่า.startDate,
-      endDate: ค่า.endDate,
-      createdAt: เวลาตอนนี้()
-    };
-
     ปุ่มบันทึก.disabled = true;
-    db.collection("leaveRequests").add(ใบใหม่).then(function () {
+    รอผู้ใช้ปัจจุบัน().then(function (ผู้ใช้) {
+      var ใบใหม่ = {
+        title: ค่า.title,
+        reason: ค่า.reason,
+        status: "รอพิจารณา",                       // ใบใหม่เริ่มที่ รอพิจารณา เสมอ
+        requesterId: ผู้ใช้.uid, requesterName: ผู้ใช้.name,
+        approverId: "",      approverName: "",
+        leaveTypeId: ประเภท.id, leaveTypeName: ประเภท.name,
+        startDate: ค่า.startDate,
+        endDate: ค่า.endDate,
+        createdAt: เวลาตอนนี้()
+      };
+      return db.collection("leaveRequests").add(ใบใหม่);
+    }).then(function () {
       location.href = "leave-requests.html";
     }).catch(function (err) {
       เตือน("บันทึกไม่สำเร็จ: " + err.message);

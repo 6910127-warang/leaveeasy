@@ -1,0 +1,23 @@
+// ─────────────────────────────────────────────────────────────
+// firestore.rules — กฎเฝ้าข้อมูลขั้นต่ำของ LeaveEasy (สัปดาห์ที่ 7)
+//
+// กฎเดียว ใช้ครอบทุกโฟลเดอร์ (รวม users, leaveTypes, leaveRequests
+// และโฟลเดอร์ย่อย leaveRequests/{id}/approvals):
+//   "ต้องล็อกอินก่อน ถึงจะอ่าน/เขียนข้อมูลได้" — ยังไม่แยกสิทธิ์ตาม role
+// กฎรายห้องที่แยกสิทธิ์ตามบทบาท (employee/manager/hr) เป็นงานสัปดาห์ที่ 8
+//
+// ไฟล์นี้เป็นแค่สำเนาเก็บไว้ในโค้ด — ตัวที่มีผลจริงคือกฎที่อยู่บน Firebase
+// วิธีเอาขึ้นจริง (โปรเจกต์นี้ยังไม่ได้ตั้งค่า Firebase CLI):
+//   1. เปิด Firebase Console → เลือกโปรเจกต์ → Firestore Database → แท็บ Rules
+//   2. คัดลอกเนื้อหาทั้งหมดด้านล่างนี้ไปวางแทนของเดิม แล้วกด Publish
+// ─────────────────────────────────────────────────────────────
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
