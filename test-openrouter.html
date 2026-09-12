@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>ทดสอบ OpenRouter AI</title>
+<style>
+  body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 16px; }
+  button { font-size: 16px; padding: 8px 16px; cursor: pointer; }
+  #ช่องข้อความ { font-size: 16px; padding: 8px; width: 100%; box-sizing: border-box; margin-bottom: 8px; }
+  #ผลลัพธ์ { margin-top: 20px; padding: 16px; border: 1px solid #ccc; border-radius: 8px; white-space: pre-wrap; min-height: 24px; }
+  .โหลด { color: #888; }
+  .ผิดพลาด { color: #c00; }
+</style>
+</head>
+<body>
+  <h1>ทดสอบ OpenRouter AI</h1>
+  <p>พิมพ์ข้อความแล้วกดปุ่มเพื่อส่งไปยังโมเดล AI ผ่าน OpenRouter</p>
+  <input type="text" id="ช่องข้อความ" placeholder="พิมพ์ข้อความที่นี่..." value="สวัสดี">
+  <button id="ปุ่มส่ง">ส่งข้อความ</button>
+  <div id="ผลลัพธ์"></div>
+
+  <script src="js/config.local.js"></script>
+  <script>
+  (function () {
+    var ปุ่มส่ง = document.getElementById('ปุ่มส่ง');
+    var ผลลัพธ์ = document.getElementById('ผลลัพธ์');
+    var ช่องข้อความ = document.getElementById('ช่องข้อความ');
+
+    ปุ่มส่ง.addEventListener('click', async function () {
+      if (!window.OPENROUTER_CONFIG || !window.OPENROUTER_CONFIG.apiKey) {
+        ผลลัพธ์.textContent = 'ไม่พบไฟล์ js/config.local.js หรือยังไม่ได้ใส่คีย์';
+        ผลลัพธ์.className = 'ผิดพลาด';
+        return;
+      }
+
+      var ข้อความ = ช่องข้อความ.value.trim();
+      if (!ข้อความ) {
+        ผลลัพธ์.textContent = 'กรุณาพิมพ์ข้อความก่อนกดส่ง';
+        ผลลัพธ์.className = 'ผิดพลาด';
+        return;
+      }
+
+      ปุ่มส่ง.disabled = true;
+      ผลลัพธ์.textContent = 'กำลังส่งข้อความ...';
+      ผลลัพธ์.className = 'โหลด';
+
+      try {
+        var res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + window.OPENROUTER_CONFIG.apiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: window.OPENROUTER_CONFIG.model,
+            messages: [{ role: 'user', content: ข้อความ }]
+          })
+        });
+
+        var data = await res.json();
+
+        if (!res.ok) {
+          throw new Error((data && data.error && data.error.message) || ('HTTP ' + res.status));
+        }
+
+        var คำตอบ = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        ผลลัพธ์.textContent = คำตอบ || 'ไม่ได้รับคำตอบจากโมเดล';
+        ผลลัพธ์.className = '';
+      } catch (err) {
+        ผลลัพธ์.textContent = 'เกิดข้อผิดพลาด: ' + err.message;
+        ผลลัพธ์.className = 'ผิดพลาด';
+      } finally {
+        ปุ่มส่ง.disabled = false;
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

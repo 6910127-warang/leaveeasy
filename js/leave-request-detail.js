@@ -71,6 +71,13 @@
     var เป็นเจ้าของใบ = ใบ.requesterId === ผู้ใช้ปัจจุบัน.uid;
 
     if (ใบ.status === "รอพิจารณา") {
+      // ให้ AI สรุปใบลาให้หัวหน้าอ่านก่อนกดอนุมัติ — เฉพาะผู้อนุมัติ และเฉพาะใบที่ยังรอพิจารณา
+      if (เป็นผู้อนุมัติ) {
+        html += '<div class="btn-row"><button type="button" class="btn-ghost" id="ปุ่มAIสรุป">ให้ AI สรุปใบลาให้หัวหน้าอ่าน</button></div>';
+        html += '<div id="ผลAIสรุป" class="alert alert-ai' + (ใบ.aiSuggestion ? '' : ' hidden') + '">' +
+          (ใบ.aiSuggestion ? 'ข้อเสนอจาก AI — โปรดตรวจสอบก่อนยืนยัน: ' + esc(ใบ.aiSuggestion) : '') + '</div>';
+      }
+
       var ปุ่ม = "";
       if (เป็นผู้อนุมัติ) {
         ปุ่ม +=
@@ -90,9 +97,97 @@
     var ปุ่มอนุมัติ = document.getElementById("ปุ่มอนุมัติ");
     var ปุ่มไม่อนุมัติ = document.getElementById("ปุ่มไม่อนุมัติ");
     var ปุ่มลบ = document.getElementById("ปุ่มลบ");
+    var ปุ่มAIสรุป = document.getElementById("ปุ่มAIสรุป");
     if (ปุ่มอนุมัติ) ปุ่มอนุมัติ.addEventListener("click", function () { เปลี่ยนสถานะ("อนุมัติ"); });
     if (ปุ่มไม่อนุมัติ) ปุ่มไม่อนุมัติ.addEventListener("click", function () { เปลี่ยนสถานะ("ไม่อนุมัติ"); });
     if (ปุ่มลบ) ปุ่มลบ.addEventListener("click", ลบใบลา);
+    if (ปุ่มAIสรุป) ปุ่มAIสรุป.addEventListener("click", เรียกAIสรุปใบลา);
+  }
+
+  // ── ให้ AI สรุปใบลาให้หัวหน้าอ่านก่อนกดอนุมัติ — อ่านใบลานี้ → เขียนสรุปสั้น ๆ → เขียนสรุปกลับลงฐาน ──
+  function เรียกAIสรุปใบลา() {
+    if (!window.OPENROUTER_CONFIG || !window.OPENROUTER_CONFIG.apiKey) {
+      แสดงผลAIสรุป("ไม่พบการตั้งค่า AI (js/config.local.js) — อ่านใบลาเองได้ตามปกติ", "alert-error");
+      return;
+    }
+
+    // หมายเหตุ: ตั้งใจไม่ส่งชื่อผู้ขอลาไปให้ AI ภายนอก (ตาม leaveeasy-spec.md §9 ห้ามส่งข้อมูลส่วนบุคคลจริงออกนอกระบบ)
+    // หัวหน้าเห็นชื่อผู้ขอลาอยู่แล้วในหน้าเดียวกัน ไม่จำเป็นต้องส่งไปกับคำสั่งสรุป
+    var คำสั่ง = "สรุปใบลาต่อไปนี้เป็นภาษาไทยสั้น ๆ 2-3 ประโยค ให้หัวหน้าอ่านก่อนตัดสินใจอนุมัติหรือไม่อนุมัติ:\n\n" +
+      "หัวข้อ: " + ใบ.title + "\n" +
+      "ประเภทการลา: " + ใบ.leaveTypeName + "\n" +
+      "วันที่ลา: " + ใบ.startDate + " ถึง " + ใบ.endDate + "\n" +
+      "เหตุผลการลา: " + ใบ.reason + "\n\n" +
+      "ตอบกลับเฉพาะเนื้อหาสรุป ห้ามมีคำนำหรือคำอธิบายอื่นปน";
+
+    var ปุ่ม = document.getElementById("ปุ่มAIสรุป");
+    ปุ่ม.disabled = true;
+    var ข้อความปุ่มเดิม = ปุ่ม.textContent;
+    ปุ่ม.textContent = "กำลังสรุป...";
+    แสดงผลAIสรุป("กำลังให้ AI สรุปใบลา...", "alert-ai");
+
+    var ตัวยกเลิก = new AbortController();
+    var หมดเวลา = setTimeout(function () { ตัวยกเลิก.abort(); }, 15000);
+
+    fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      signal: ตัวยกเลิก.signal,
+      headers: {
+        "Authorization": "Bearer " + window.OPENROUTER_CONFIG.apiKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: window.OPENROUTER_CONFIG.model,
+        messages: [{ role: "user", content: คำสั่ง }]
+      })
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) {
+          throw new Error((data && data.error && data.error.message) || ("HTTP " + res.status));
+        }
+        return data;
+      });
+    }).then(function (data) {
+      var สรุป = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content || "").trim();
+      return บันทึกAiLog(คำสั่ง, สรุป).then(function () {
+        if (!สรุป) {
+          แสดงผลAIสรุป("AI สรุปใบลาให้ไม่ได้ — อ่านใบลาเองได้ตามปกติ", "alert-error");
+          return;
+        }
+        return db.collection("leaveRequests").doc(ใบ.id).update({
+          aiSuggestion: สรุป
+        }).then(function () {
+          ใบ.aiSuggestion = สรุป;
+          วาดใบลา();
+        });
+      });
+    }).catch(function (err) {
+      บันทึกAiLog(คำสั่ง, "(เรียกไม่สำเร็จ) " + err.message);
+      แสดงผลAIสรุป("เรียก AI ไม่สำเร็จ — อ่านใบลาเองได้ตามปกติ", "alert-error");
+    }).finally(function () {
+      clearTimeout(หมดเวลา);
+      var ปุ่มปัจจุบัน = document.getElementById("ปุ่มAIสรุป");
+      if (ปุ่มปัจจุบัน) {
+        ปุ่มปัจจุบัน.disabled = false;
+        ปุ่มปัจจุบัน.textContent = ข้อความปุ่มเดิม;
+      }
+    });
+  }
+
+  function แสดงผลAIสรุป(ข้อความ, คลาส) {
+    var กล่อง = document.getElementById("ผลAIสรุป");
+    if (!กล่อง) return;
+    กล่อง.textContent = ข้อความ;
+    กล่อง.className = "alert " + คลาส;
+  }
+
+  // ── บันทึกประวัติการเรียก AI ทุกครั้งลงโฟลเดอร์ย่อย aiLog ของใบนี้ — ไม่ว่าจะสำเร็จหรือไม่ ──
+  function บันทึกAiLog(input, output) {
+    return db.collection("leaveRequests").doc(ใบ.id).collection("aiLog").add({
+      input: input,
+      output: output,
+      createdAt: เวลาตอนนี้()
+    }).catch(function () {});
   }
 
   // ── เปลี่ยนสถานะ — เขียนกลับ Firestore เฉพาะช่อง status เท่านั้น ──
